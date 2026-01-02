@@ -77,9 +77,12 @@ void run_file(char *fp) {
 
   struct context *ctx = ctx_new();
   struct parser parser = {.cursor = program_txt, .text = program_txt};
-
   struct obj *compiled = compile(&parser);
+
+  free(program_txt);
+
   eval(ctx, compiled);
+  obj_release(compiled);
 }
 
 void repl(void) {
