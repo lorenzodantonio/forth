@@ -5,19 +5,19 @@ struct context;
 
 typedef int (*function)(struct context *ctx, char *name);
 
-struct fn_table_entry {
+struct word {
   struct obj *name;
   function callback;
 };
 
-struct fn_table {
-  struct fn_table_entry **data;
+struct dictionary {
+  struct word **words;
   size_t count;
 };
 
 struct context {
   struct obj *stack;
-  struct fn_table functions;
+  struct dictionary dict;
 };
 
 struct context *ctx_new(void);
@@ -27,8 +27,7 @@ struct obj *ctx_stack_peek(struct context *ctx);
 void ctx_stack_push(struct context *ctx, struct obj *o);
 int ctx_stack_check_len(struct context *ctx, size_t minlen);
 
-struct fn_table_entry *get_function_by_name(struct context *ctx,
-                                            struct obj *name);
+struct word *ctx_dict_find(struct context *ctx, struct obj *name);
+void ctx_dict_add(struct context *ctx, char *name, function callback);
 
-void register_function(struct context *ctx, char *name, function callback);
 void call_symbol(struct context *ctx, struct obj *symbol);

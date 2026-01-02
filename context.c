@@ -75,15 +75,15 @@ int string_concat(struct context *ctx, char *name) {
 
 struct context *ctx_new(void) {
   struct context *ctx = malloc(sizeof(*ctx));
-  ctx->functions.data = malloc(sizeof(struct fn_table_entry *) * 16);
-  ctx->functions.count = 0;
+  ctx->dict.words = malloc(sizeof(struct word *) * 16);
+  ctx->dict.count = 0;
   ctx->stack = obj_list_new();
 
-  register_function(ctx, "+", calc);
-  register_function(ctx, "-", calc);
-  register_function(ctx, ".", print);
-  register_function(ctx, "concat", string_concat);
-  register_function(ctx, "dup", dup);
+  ctx_dict_add(ctx, "+", calc);
+  ctx_dict_add(ctx, "-", calc);
+  ctx_dict_add(ctx, ".", print);
+  ctx_dict_add(ctx, "concat", string_concat);
+  ctx_dict_add(ctx, "dup", dup);
 
   return ctx;
 }
@@ -109,37 +109,36 @@ void ctx_free(struct context *ctx) {
   obj_free(ctx->stack);
 }
 
-struct fn_table_entry *get_function_by_name(struct context *ctx,
-                                            struct obj *name) {
-  for (size_t i = 0; i < ctx->functions.count; i++) {
-    struct fn_table_entry *fe = ctx->functions.data[i];
-    if (obj_string_compare(name, fe->name) == 0) {
-      return fe;
+struct word *ctx_dict_find(struct context *ctx, struct obj *name) {
+  for (size_t i = 0; i < ctx->dict.count; i++) {
+    struct word *w = ctx->dict.words[i];
+    if (obj_string_compare(name, w->name) == 0) {
+      return w;
     }
   }
   return NULL;
 }
 
-void register_function(struct context *ctx, char *name, function callback) {
+void ctx_dict_add(struct context *ctx, char *name, function callback) {
   struct obj *oname = obj_string_new(name, strlen(name));
-  struct fn_table_entry *fe = get_function_by_name(ctx, oname);
-  if (fe != NULL) {
-    fe->callback = callback;
+  struct word *w = ctx_dict_find(ctx, oname);
+  if (w != NULL) {
+    w->callback = callback;
   } else {
-    struct fn_table_entry *fe = malloc(sizeof(*fe));
-    fe->name = oname;
-    fe->callback = callback;
-    ctx->functions.data[ctx->functions.count++] = fe;
+    struct word *w = malloc(sizeof(*w));
+    w->name = oname;
+    w->callback = callback;
+    ctx->dict.words[ctx->dict.count++] = w;
   }
 }
 
 void call_symbol(struct context *ctx, struct obj *symbol) {
-  struct fn_table_entry *f = get_function_by_name(ctx, symbol);
-  if (f == NULL) {
+  struct word *w = ctx_dict_find(ctx, symbol);
+  if (w == NULL) {
     fprintf(stderr, "symbol %s not found\n", symbol->string.value);
     return;
   }
-  int n = f->callback(ctx, symbol->string.value);
+  int n = w->callback(ctx, symbol->string.value);
   if (n == -1) {
     fprintf(stderr, "an error occurred calling symbol: %s\n",
             symbol->string.value);
