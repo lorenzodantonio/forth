@@ -54,7 +54,7 @@ void eval(struct context *ctx, struct obj *obj) {
     obj_print(obj);
     break;
   case OBJ_TYPE_SYMBOL:
-    call_symbol(ctx, obj);
+    symbol_exec(ctx, obj);
     break;
   default:
     ctx_stack_push(ctx, obj);
