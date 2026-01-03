@@ -30,4 +30,4 @@ int ctx_stack_check_len(struct context *ctx, size_t minlen);
 struct word *ctx_dict_find(struct context *ctx, struct obj *name);
 void ctx_dict_add(struct context *ctx, char *name, function callback);
 
-void call_symbol(struct context *ctx, struct obj *symbol);
+void symbol_exec(struct context *ctx, struct obj *symbol);

@@ -132,7 +132,7 @@ void ctx_dict_add(struct context *ctx, char *name, function callback) {
   }
 }
 
-void call_symbol(struct context *ctx, struct obj *symbol) {
+void symbol_exec(struct context *ctx, struct obj *symbol) {
   struct word *w = ctx_dict_find(ctx, symbol);
   if (w == NULL) {
     fprintf(stderr, "symbol %s not found\n", symbol->string.value);
