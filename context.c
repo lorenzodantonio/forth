@@ -79,3 +79,22 @@ void symbol_exec(struct context *ctx, struct obj *symbol) {
             symbol->string.value);
   }
 }
+
+void eval(struct context *ctx, struct obj *obj) {
+  switch (obj->type) {
+  case OBJ_TYPE_LIST:
+    for (size_t i = 0; i < obj->list.len; i++) {
+      eval(ctx, obj->list.data[i]);
+    }
+    break;
+  case OBJ_TYPE_FLASH_MSG:
+    obj_print(obj);
+    break;
+  case OBJ_TYPE_SYMBOL:
+    symbol_exec(ctx, obj);
+    break;
+  default:
+    ctx_stack_push(ctx, obj);
+    obj_retain(obj);
+  }
+}

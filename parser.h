@@ -13,3 +13,5 @@ struct obj *parse_flash_msg(struct parser *parser);
 struct obj *parse_symbol(struct parser *parser);
 
 int is_symbol_char(int c);
+
+struct obj *compile(struct parser *parser); // parse program

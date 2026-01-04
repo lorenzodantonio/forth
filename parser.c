@@ -84,7 +84,7 @@ struct obj *parse_flash_msg(struct parser *parser) {
 //     if (parser->cursor[0] == '\0') {
 //       fprintf(stderr, "word not closed\n");
 //       exit(0);
-//     }
+//     } // TODO refactor
 //   }
 // }
 
@@ -98,4 +98,38 @@ struct obj *parse_symbol(struct parser *parser) {
 
   struct obj *o = obj_symbol_new(start, len);
   return o;
+}
+
+struct obj *compile(struct parser *parser) {
+  struct obj *parsed = obj_list_new();
+
+  while (parser->cursor[0] != 0) {
+    while (isspace(parser->cursor[0])) {
+      parser->cursor++;
+    }
+
+    struct obj *object = NULL;
+    if (isdigit(parser->cursor[0]) ||
+        (parser->cursor[0] == '-' && isdigit(parser->cursor[1]))) {
+      object = parse_int(parser);
+    } else if (memcmp(parser->cursor, "s\" ", 3) == 0) {
+      object = parse_string(parser);
+    } else if (parser->cursor[0] && memcmp(parser->cursor, ".( ", 3) == 0) {
+      object = parse_flash_msg(parser);
+    } else if (parser->cursor[0] && is_symbol_char(parser->cursor[0])) {
+      object = parse_symbol(parser);
+      // } else if (parser->cursor[0] && memcmp(parser->cursor, ": ", 2) == 0) {
+      //   object = parse_word(parser);
+      //   obj_print(object);
+      //   continue; // skip program push
+    } else {
+      parser->cursor++;
+    }
+
+    if (object != NULL) {
+      obj_list_push(parsed, object);
+    }
+  }
+
+  return parsed;
 }
