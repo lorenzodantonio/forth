@@ -31,3 +31,4 @@ struct word *ctx_dict_find(struct context *ctx, struct obj *name);
 void ctx_dict_add(struct context *ctx, char *name, function callback);
 
 void symbol_exec(struct context *ctx, struct obj *symbol);
+void eval(struct context *ctx, struct obj *o);
