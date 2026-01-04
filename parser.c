@@ -76,17 +76,39 @@ struct obj *parse_flash_msg(struct parser *parser) {
   return result;
 }
 
-// struct obj *parse_word(struct parser *parser) {
-//   size_t len = 0;
-//   parser->cursor += 2; // skip ": "
+struct obj *parse_word(struct parser *parser) {
+  size_t len = 0;
+  parser->cursor += 2; // skip ": "
 
-//   while (parser->cursor[0] != ';') {
-//     if (parser->cursor[0] == '\0') {
-//       fprintf(stderr, "word not closed\n");
-//       exit(0);
-//     } // TODO refactor
-//   }
-// }
+  char *start = parser->cursor;
+  while (parser->cursor[0] != ';') {
+    if (parser->cursor[0] == '\0') {
+      fprintf(stderr, "word not closed\n");
+      exit(0);
+    } // TODO refactor
+    parser->cursor++;
+  }
+  char *end = parser->cursor;
+  parser->cursor = start;
+
+  struct obj *name = parse_symbol(parser);
+  char *symbol_end = parser->cursor;
+
+  size_t subprogram_len = end - symbol_end;
+  char *subprogram = malloc(subprogram_len + 1); // consider ending char
+  memcpy(subprogram, parser->cursor, subprogram_len);
+  subprogram[subprogram_len] = '\0';
+
+  struct parser subparser = {.cursor = subprogram, .text = subprogram};
+  struct obj *subprg = compile(&subparser);
+  subprg->type = OBJ_TYPE_WORD;
+
+  obj_list_push(subprg, name);
+  parser->cursor = end + 1;
+  free(subprogram);
+
+  return subprg;
+}
 
 struct obj *parse_symbol(struct parser *parser) {
   char *start = parser->cursor;
@@ -118,10 +140,8 @@ struct obj *compile(struct parser *parser) {
       object = parse_flash_msg(parser);
     } else if (parser->cursor[0] && is_symbol_char(parser->cursor[0])) {
       object = parse_symbol(parser);
-      // } else if (parser->cursor[0] && memcmp(parser->cursor, ": ", 2) == 0) {
-      //   object = parse_word(parser);
-      //   obj_print(object);
-      //   continue; // skip program push
+    } else if (parser->cursor[0] && memcmp(parser->cursor, ": ", 2) == 0) {
+      object = parse_word(parser);
     } else {
       parser->cursor++;
     }
