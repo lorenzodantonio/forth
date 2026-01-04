@@ -12,7 +12,7 @@ struct obj *obj_new(int type) {
 void obj_retain(struct obj *o) { o->refs++; };
 void obj_release(struct obj *o) {
   o->refs--;
-  if (o->refs == 0) {
+  if (o->refs == 1) {
     obj_free(o);
   }
 }
