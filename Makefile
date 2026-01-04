@@ -1,6 +1,6 @@
 all: forth run
 build:
-	$(CC) main.c parser.c type.c context.c  -Wall -w -O2 -o forth
+	$(CC) main.c parser.c type.c context.c func.c -Wall -w -O2 -o forth
 run:
 	./forth program.forth
 clean:
