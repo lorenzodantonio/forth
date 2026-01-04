@@ -119,6 +119,7 @@ void obj_print(struct obj *o) {
     printf("%d", o->num);
     break;
   case OBJ_TYPE_STR:
+  case OBJ_TYPE_FLASH_MSG:
   case OBJ_TYPE_SYMBOL:
     printf("\"%s\"", o->string.value);
     break;
