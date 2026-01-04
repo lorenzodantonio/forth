@@ -7,6 +7,7 @@
 #define OBJ_TYPE_LIST 2
 #define OBJ_TYPE_SYMBOL 3
 #define OBJ_TYPE_FLASH_MSG 4
+#define OBJ_TYPE_WORD 5
 
 /* types  */
 
@@ -40,6 +41,10 @@ struct obj *obj_list_pop(struct obj *o);
 struct obj *obj_list_peek(struct obj *o);
 
 struct obj *obj_int_new(int n);
+
+struct obj *
+obj_word_new(char *name,
+             struct obj *subprogram); // colliding with dictionary->word?
 
 void obj_print(struct obj *o);
 void obj_free(struct obj *o);

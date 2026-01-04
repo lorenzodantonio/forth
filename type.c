@@ -106,15 +106,24 @@ struct obj *obj_list_peek(struct obj *o) {
   return o->list.data[o->list.len - 1];
 }
 
+struct obj *obj_word_new(char *name, struct obj *subprogram) {
+  struct obj *o = obj_list_new();
+  o->type = OBJ_TYPE_WORD;
+  obj_list_push(o, subprogram);
+  return o;
+}
+
 void obj_print(struct obj *o) {
   switch (o->type) {
   case OBJ_TYPE_INT:
     printf("%d", o->num);
     break;
   case OBJ_TYPE_STR:
+  case OBJ_TYPE_SYMBOL:
     printf("\"%s\"", o->string.value);
     break;
   case OBJ_TYPE_LIST:
+  case OBJ_TYPE_WORD: // check
     for (size_t i = 0; i < o->list.len; i++) {
       obj_print(o->list.data[i]);
     }
