@@ -104,9 +104,7 @@ void symbol_exec(struct context *ctx, struct obj *symbol) {
     }
     break;
   case FUNC_TYPE_USERDEF:
-    for (size_t i = 0; i < w->user_func->list.len; i++) {
-      eval(ctx, w->user_func->list.data[i]);
-    }
+    eval(ctx, w->user_func);
     break;
   }
 }
