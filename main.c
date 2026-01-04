@@ -29,6 +29,8 @@ void run_file(char *fp) {
 
   eval(ctx, compiled);
   obj_release(compiled);
+
+  printf("\n");
 }
 
 void repl(void) {
