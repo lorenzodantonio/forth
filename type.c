@@ -137,11 +137,14 @@ void obj_free(struct obj *o) {
   case OBJ_TYPE_INT:
     break;
   case OBJ_TYPE_STR:
+  case OBJ_TYPE_FLASH_MSG:
+  case OBJ_TYPE_SYMBOL:
     free(o->string.value);
     break;
   case OBJ_TYPE_LIST:
+  case OBJ_TYPE_WORD:
     for (size_t i = 0; i < o->list.len; i++) {
-      obj_free(o->list.data[i]);
+      obj_release(o->list.data[i]);
     }
     free(o->list.data);
     break;
