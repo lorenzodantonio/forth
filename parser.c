@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-struct obj *parse_int(struct parser *parser) {
+obj parse_int(struct parser *parser) {
   char buffer[128];
   char *start = parser->cursor;
   char *end;
@@ -17,15 +17,14 @@ struct obj *parse_int(struct parser *parser) {
   end = parser->cursor;
   int numlen = end - start;
   if (numlen >= 128) {
-    return NULL;
+    exit(0);
+    // TODO use sentinel
   }
 
   memcpy(buffer, start, numlen);
   buffer[numlen] = '\0';
   int i = atoi(buffer);
-  struct obj *obj = obj_int_new(i);
-  obj->num = i;
-
+  obj obj = obj_int_new(i);
   return obj;
 }
 
@@ -40,7 +39,7 @@ int is_symbol_char(int c) {
   }
 }
 
-struct obj *parse_string(struct parser *parser) {
+obj parse_string(struct parser *parser) {
   size_t strlen = 0;
   parser->cursor += 3; // skip s"_
   char *start = parser->cursor;
@@ -48,17 +47,16 @@ struct obj *parse_string(struct parser *parser) {
     if (parser->cursor[0] == '\0') {
       fprintf(stderr, "string not closed; program quitting\n");
       exit(0);
-      return NULL;
     }
     parser->cursor++;
     strlen++;
   }
 
-  struct obj *o = obj_string_new(start, strlen);
+  obj o = obj_string_new(start, strlen);
   return o;
 }
 
-struct obj *parse_flash_msg(struct parser *parser) {
+obj parse_flash_msg(struct parser *parser) {
   parser->cursor += 3; // skip ".( "
   char *start = parser->cursor;
   while (parser->cursor[0] != '\0' && memcmp(parser->cursor, " )", 2) != 0) {
@@ -67,16 +65,16 @@ struct obj *parse_flash_msg(struct parser *parser) {
 
   if (parser->cursor[0] == '\0') {
     fprintf(stderr, "error: unclosed flash string\n");
-    return NULL;
+    exit(1);
   }
 
   size_t len = parser->cursor - start;
-  struct obj *result = obj_flash_msg_new(start, len);
+  obj result = obj_flash_msg_new(start, len);
   parser->cursor += 2; // set cursor over " )"
   return result;
 }
 
-struct obj *parse_word(struct parser *parser) {
+obj parse_word(struct parser *parser) {
   size_t len = 0;
   parser->cursor += 2; // skip ": "
 
@@ -91,7 +89,7 @@ struct obj *parse_word(struct parser *parser) {
   char *end = parser->cursor;
   parser->cursor = start;
 
-  struct obj *name = parse_symbol(parser);
+  obj name = parse_symbol(parser);
   char *symbol_end = parser->cursor;
 
   size_t subprogram_len = end - symbol_end;
@@ -100,17 +98,17 @@ struct obj *parse_word(struct parser *parser) {
   subprogram[subprogram_len] = '\0';
 
   struct parser subparser = {.cursor = subprogram, .text = subprogram};
-  struct obj *subprg = compile(&subparser);
-  subprg->type = OBJ_TYPE_WORD;
-
+  obj subprg = compile(&subparser);
+  subprg = ((obj)OBJ_TYPE_WORD << 48) | (subprg & 0xFFFFFFFFFFFF);
   obj_list_push(subprg, name);
+
   parser->cursor = end + 1;
   free(subprogram);
 
   return subprg;
 }
 
-struct obj *parse_symbol(struct parser *parser) {
+obj parse_symbol(struct parser *parser) {
   char *start = parser->cursor;
 
   while (parser->cursor[0] && is_symbol_char(parser->cursor[0])) {
@@ -118,19 +116,21 @@ struct obj *parse_symbol(struct parser *parser) {
   }
   size_t len = parser->cursor - start;
 
-  struct obj *o = obj_symbol_new(start, len);
+  obj o = obj_symbol_new(start, len);
   return o;
 }
 
-struct obj *compile(struct parser *parser) {
-  struct obj *parsed = obj_list_new();
+obj compile(struct parser *parser) {
+  obj parsed = obj_list_new(64);
 
+  int found;
   while (parser->cursor[0] != 0) {
     while (isspace(parser->cursor[0])) {
       parser->cursor++;
     }
 
-    struct obj *object = NULL;
+    obj object;
+    found = 1;
     if (isdigit(parser->cursor[0]) ||
         (parser->cursor[0] == '-' && isdigit(parser->cursor[1]))) {
       object = parse_int(parser);
@@ -143,10 +143,11 @@ struct obj *compile(struct parser *parser) {
     } else if (parser->cursor[0] && memcmp(parser->cursor, ": ", 2) == 0) {
       object = parse_word(parser);
     } else {
+      found = 0;
       parser->cursor++;
     }
 
-    if (object != NULL) {
+    if (found) {
       obj_list_push(parsed, object);
     }
   }

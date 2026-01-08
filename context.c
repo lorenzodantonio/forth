@@ -5,7 +5,7 @@
 #include <string.h>
 
 int ctx_stack_check_len(struct context *ctx, size_t minlen) {
-  return ctx->stack->list.len >= minlen;
+  return ctx->stack->count >= minlen;
 }
 
 struct context *ctx_new(void) {
@@ -13,7 +13,9 @@ struct context *ctx_new(void) {
   ctx->dict.words = malloc(sizeof(struct word *) * 16);
   ctx->dict.capacity = 16;
   ctx->dict.count = 0;
-  ctx->stack = obj_list_new();
+
+  // Inizializzazione Ring 0 dello stack
+  ctx->stack = list_new(32);
 
   ctx_dict_add_builtin(ctx, "+", calc);
   ctx_dict_add_builtin(ctx, "-", calc);
@@ -24,31 +26,29 @@ struct context *ctx_new(void) {
   return ctx;
 }
 
-struct obj *ctx_stack_pop(struct context *ctx) {
-  struct obj *lastin = obj_list_pop(ctx->stack);
-  return lastin;
+obj ctx_stack_pop(struct context *ctx) {
+  return ctx->stack->data[--ctx->stack->count];
 }
 
-struct obj *ctx_stack_peek(struct context *ctx) {
-  return obj_list_peek(ctx->stack);
+obj ctx_stack_peek(struct context *ctx) {
+  return ctx->stack->data[ctx->stack->count - 1];
 }
 
-void ctx_stack_push(struct context *ctx, struct obj *o) {
-  obj_list_push(ctx->stack, o);
-}
+void ctx_stack_push(struct context *ctx, obj v) { list_push(ctx->stack, v); }
 
 void ctx_free(struct context *ctx) {
-  if (ctx->stack->list.len != 0) {
+  if (ctx->stack->count != 0) {
     fprintf(stderr, "Warning: %zu items left unprocessed in the stack\n",
-            ctx->stack->list.len);
+            ctx->stack->count);
   }
-  obj_free(ctx->stack);
 }
 
-struct word *ctx_dict_find(struct context *ctx, struct obj *name) {
+struct word *ctx_dict_find(struct context *ctx, obj name) {
   for (size_t i = 0; i < ctx->dict.count; i++) {
     struct word *w = ctx->dict.words[i];
-    if (obj_string_compare(name, w->name) == 0) {
+    struct string *sw = (struct string *)obj_to_ptr(w->name);
+    struct string *s = (struct string *)obj_to_ptr(name);
+    if (strcmp(sw->value, s->value) == 0) {
       return w;
     }
   }
@@ -56,7 +56,7 @@ struct word *ctx_dict_find(struct context *ctx, struct obj *name) {
 }
 
 struct word *_ctx_reserve(struct context *ctx, char *name) {
-  struct obj *oname = obj_string_new(name, strlen(name));
+  obj oname = obj_string_new(name, strlen(name));
   struct word *w = ctx_dict_find(ctx, oname);
   if (w != NULL) {
     return w;
@@ -70,7 +70,6 @@ struct word *_ctx_reserve(struct context *ctx, char *name) {
   }
   w = malloc(sizeof(*w));
   w->name = oname;
-  oname->refs++;
   ctx->dict.words[ctx->dict.count++] = w;
   return w;
 }
@@ -81,55 +80,56 @@ void ctx_dict_add_builtin(struct context *ctx, char *name, function callback) {
   w->builtin_func = callback;
 }
 
-void ctx_dict_add_userdef(struct context *ctx, char *name,
-                          struct obj *callback) {
+void ctx_dict_add_userdef(struct context *ctx, char *name, obj callback) {
   struct word *w = _ctx_reserve(ctx, name);
   w->deftype = FUNC_TYPE_USERDEF;
   w->user_func = callback;
 }
 
-void symbol_exec(struct context *ctx, struct obj *symbol) {
+void symbol_exec(struct context *ctx, obj symbol) {
   struct word *w = ctx_dict_find(ctx, symbol);
+  struct string *s = obj_to_ptr(symbol);
+
   if (w == NULL) {
-    fprintf(stderr, "symbol %s not found\n", symbol->string.value);
+    fprintf(stderr, "symbol %s not found\n", s->value);
     return;
   }
 
   switch (w->deftype) {
-  case FUNC_TYPE_BUILTIN:
-    int result = w->builtin_func(ctx, symbol->string.value);
+  case FUNC_TYPE_BUILTIN: {
+    int result = w->builtin_func(ctx, s->value);
     if (result == -1) {
-      fprintf(stderr, "an error occurred calling symbol: %s\n",
-              symbol->string.value);
+      fprintf(stderr, "an error occurred calling symbol: %s\n", s->value);
     }
     break;
+  }
   case FUNC_TYPE_USERDEF:
     eval(ctx, w->user_func);
     break;
   }
 }
 
-void eval(struct context *ctx, struct obj *obj) {
-  switch (obj->type) {
-  case OBJ_TYPE_LIST:
-    for (size_t i = 0; i < obj->list.len; i++) {
-      eval(ctx, obj->list.data[i]);
+void eval(struct context *ctx, obj o) {
+  uint16_t t = which_type(o);
+  switch (t) {
+  case OBJ_TYPE_LIST: {
+    struct list *l = obj_to_ptr(o);
+    for (size_t i = 0; i < l->count; i++) {
+      eval(ctx, l->data[i]);
     }
     break;
-  case OBJ_TYPE_FLASH_MSG:
-    obj_print(obj);
-    break;
+  }
   case OBJ_TYPE_SYMBOL:
-    symbol_exec(ctx, obj);
+    symbol_exec(ctx, o);
     break;
   case OBJ_TYPE_WORD:
-    struct obj *name = obj_list_pop(obj);
-    obj->type = OBJ_TYPE_LIST;
-    ctx_dict_add_userdef(ctx, name->string.value, obj);
-    // obj_retain(obj);
+    obj name = obj_list_pop(o);
+    struct string *str = (struct string *)obj_to_ptr(name);
+    obj clean_list = ((obj)OBJ_TYPE_LIST << 48) | (o & 0xFFFFFFFFFFFF);
+    ctx_dict_add_userdef(ctx, str->value, clean_list);
     break;
   default:
-    ctx_stack_push(ctx, obj);
-    obj_retain(obj);
+    ctx_stack_push(ctx, o);
+    break;
   }
 }

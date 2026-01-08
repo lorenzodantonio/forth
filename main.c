@@ -23,12 +23,12 @@ void run_file(char *fp) {
 
   struct context *ctx = ctx_new();
   struct parser parser = {.cursor = program_txt, .text = program_txt};
-  struct obj *compiled = compile(&parser);
+  obj compiled = compile(&parser);
 
   free(program_txt);
 
   eval(ctx, compiled);
-  obj_release(compiled);
+  // obj_release(compiled);
 
   printf("\n");
 }
@@ -47,18 +47,18 @@ void repl(void) {
       break;
 
     struct parser p = {.text = line, .cursor = line};
-    struct obj *tokenized = compile(&p);
+    obj tokenized = compile(&p);
     eval(ctx, tokenized);
 
-    for (size_t i = 0; i < ctx->stack->list.len; i++) {
-      struct obj *o = ctx->stack->list.data[i];
+    for (size_t i = 0; i < ctx->stack->count; i++) {
+      obj o = ctx->stack->data[i];
       if (i > 0) {
         printf("|");
       }
       obj_print(o);
     }
     printf("\n");
-    obj_release(tokenized);
+    // obj_release(tokenized);
   }
 }
 

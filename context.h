@@ -9,11 +9,11 @@ struct context;
 typedef int (*function)(struct context *ctx, char *name);
 
 struct word {
-  struct obj *name;
+  obj name;
   int deftype;
   union {
     function builtin_func;
-    struct obj *user_func;
+    obj user_func;
   };
 };
 
@@ -24,21 +24,20 @@ struct dictionary {
 };
 
 struct context {
-  struct obj *stack;
+  struct list *stack;
   struct dictionary dict;
 };
 
 struct context *ctx_new(void);
 void ctx_free(struct context *ctx);
-struct obj *ctx_stack_pop(struct context *ctx);
-struct obj *ctx_stack_peek(struct context *ctx);
-void ctx_stack_push(struct context *ctx, struct obj *o);
+obj ctx_stack_pop(struct context *ctx);
+obj ctx_stack_peek(struct context *ctx);
+void ctx_stack_push(struct context *ctx, obj v);
 int ctx_stack_check_len(struct context *ctx, size_t minlen);
 
-struct word *ctx_dict_find(struct context *ctx, struct obj *name);
+struct word *ctx_dict_find(struct context *ctx, obj name);
 void ctx_dict_add_builtin(struct context *ctx, char *name, function callback);
-void ctx_dict_add_userdef(struct context *ctx, char *name,
-                          struct obj *callback);
+void ctx_dict_add_userdef(struct context *ctx, char *name, obj callback);
 
-void symbol_exec(struct context *ctx, struct obj *symbol);
-void eval(struct context *ctx, struct obj *o);
+void symbol_exec(struct context *ctx, obj symbol);
+void eval(struct context *ctx, obj o);

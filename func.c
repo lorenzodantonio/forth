@@ -4,28 +4,27 @@
 
 int calc(struct context *ctx, char *name) {
   if (!ctx_stack_check_len(ctx, 2)) {
-    fprintf(stderr, "found %d\n", ctx->stack->list.len);
+    fprintf(stderr, "found %d\n", ctx->stack->count);
     fprintf(stderr, "invalid parameters count\n");
     return -1;
   }
 
-  struct obj *a = ctx_stack_pop(ctx);
-  struct obj *b = ctx_stack_pop(ctx);
+  int a = obj_to_int(ctx_stack_pop(ctx));
+  int b = obj_to_int(ctx_stack_pop(ctx));
 
-  int result;
-
+  obj result;
   switch (name[0]) {
   case '+':
-    result = a->num + b->num;
+    result = obj_int_new(a + b);
     break;
   case '-':
-    result = a->num - b->num;
+    result = obj_int_new(a - b);
     break;
   default:
     fprintf(stderr, "not implemented yet\n");
   }
-  obj_release(a);
-  obj_release(b);
+  // obj_release(a);
+  // obj_release(b);
   ctx_stack_push(ctx, obj_int_new(result));
 
   return 0;
@@ -36,9 +35,11 @@ int display(struct context *ctx, char *name) {
     return -1;
   }
 
-  struct obj *o = ctx_stack_pop(ctx);
-  obj_print(o);
-  obj_release(o);
+  obj o = ctx_stack_pop(ctx);
+  char *s = traits[which_type(o)].repr(o);
+  printf("%s", s);
+  free(s);
+
   return 0;
 }
 
@@ -46,9 +47,9 @@ int dup(struct context *ctx, char *name) {
   if (!ctx_stack_check_len(ctx, 1)) {
     return -1;
   }
-  struct obj *target = ctx_stack_peek(ctx);
-  ctx_stack_push(ctx, target);
-  target->refs++;
+  // struct obj *target = ctx_stack_peek(ctx);
+  // ctx_stack_push(ctx, target);
+  // target->refs++;
   return 0;
 }
 
@@ -57,13 +58,13 @@ int string_concat(struct context *ctx, char *name) {
     return -1;
   }
 
-  struct obj *a = ctx_stack_pop(ctx);
-  struct obj *b = ctx_stack_pop(ctx);
+  // value a = ctx_stack_pop(ctx);
+  // value b = ctx_stack_pop(ctx);
 
-  struct obj *result = obj_string_concat(a, b);
+  // value result = obj_string_concat(a, b);
 
-  ctx_stack_push(ctx, result);
-  obj_release(a);
-  obj_release(b);
+  // ctx_stack_push(ctx, result);
+  // obj_release(a);
+  // obj_release(b);
   return 0;
 }
